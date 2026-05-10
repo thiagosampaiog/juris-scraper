@@ -1,0 +1,14 @@
+# --- Python environment ---
+.venv/             
+__pycache__/       
+*.py[cod]          
+*$py.class         
+
+# --- Fast API / Uvicorn ---
+.env              
+.pytest_cache/    
+htmlcov/           
+.coverage        
+
+# --- uv specific ---
+.python-version   
