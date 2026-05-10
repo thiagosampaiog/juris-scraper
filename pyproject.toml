@@ -4,4 +4,7 @@ version = "0.1.0"
 description = "Pipeline de coleta de processos judiciais da TJBA que agrega múltiplas fontes, processa em fila assíncrona e exibe dados da API. Quando as fontes abertas falham, aciona a resolução humana de captcha no Discord."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi[standard]>=0.136.1",
+    "pydantic-settings>=2.14.1",
+]
