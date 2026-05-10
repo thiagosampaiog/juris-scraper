@@ -5,6 +5,9 @@ description = "Pipeline de coleta de processos judiciais da TJBA que agrega múl
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
     "fastapi[standard]>=0.136.1",
     "pydantic-settings>=2.14.1",
+    "sqlalchemy[asyncio]>=2.0.49",
 ]
