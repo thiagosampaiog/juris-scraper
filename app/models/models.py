@@ -11,8 +11,7 @@ class ParticipantType(enum.Enum):
     author = "author"
     defendant = "defendant"
     third_party = "third_party"
-    
-    
+
 class SourceType(enum.Enum):
     consulta_processual = "consulta_processual"
     datajud = "datajud"
