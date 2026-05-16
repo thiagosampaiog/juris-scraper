@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from app.core.config import settings
+from app.api.routes.lawsuits import router as lawsuits_router
 
-app = FastAPI(title=settings.app_name,swagger_ui_parameters={"syntaxhighlights": False})
+app = FastAPI(
+    title=settings.app_name, swagger_ui_parameters={"syntaxhighlights": False}
+)
+app.include_router(lawsuits_router)
+
 
 @app.get("/info")
 async def info():
