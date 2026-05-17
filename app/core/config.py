@@ -15,6 +15,7 @@ class Settings(BaseSettings):
         "https://consultaprocessualapi.tjba.jus.br/api/processos/"
     )
     datajud_api: str = "https://api-publica.datajud.cnj.jus.br/api_publica_tjba/_search"
+    datajud_api_key: str = ""
 
 
 settings = Settings()
