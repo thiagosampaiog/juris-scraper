@@ -1,16 +1,17 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.models import Lawsuit
+from app.models.models import Lawsuit, Movement, Hearing, Incident, Participant, Petition, Subject
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from app.schemas.schemas import PaginatedLawsuitsResponse
+from app.schemas.responses import PaginatedLawsuitsResponse, LawsuitResponse
 from sqlalchemy import func
+from app.scrapers.datajud import DatajudScraper
 
 
 class SqlAlchemyLawsuitRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_by_cnj(self, cnj: str) -> Lawsuit:
+    async def get_by_cnj(self, cnj: str) -> Lawsuit | None:
         stmt = (
             select(Lawsuit)
             .where(Lawsuit.id == cnj)
@@ -46,37 +47,53 @@ class SqlAlchemyLawsuitRepository:
         items = result.scalars().all()
 
         count_stmt = select(func.count()).select_from(Lawsuit)
-        total = await self.session.scalar(count_stmt)
+        total = await self.session.scalar(count_stmt) or 0
 
-        return {"total": total, "limit": limit, "offset": offset, "items": items}
+        return PaginatedLawsuitsResponse(
+            total=int(total), limit=limit, offset=offset, items=[LawsuitResponse.model_validate(i) for i in items],
+        )
+    
+    async def upsert(self, cnj: str, data: dict, tribunal_id: int) -> Lawsuit | None:
+        SCALAR_FIELDS = {
+            "class_", "area", "court", "grade", "subject",
+            "district", "control", "action_value", "status",
+            "source", "distributed_at", "raw"
+        }
 
-    async def upsert(self, cnj: str, data: dict, tribunal_id: int) -> Lawsuit:
         existing = await self.get_by_cnj(cnj)
 
         if existing is None:
             lawsuit = Lawsuit(
                 id=cnj,
                 tribunal_id=tribunal_id,
-                class_=data.get("class_"),
-                area=data.get("area"),
-                court=data.get("court"),
-                grade=data.get("grade"),
-                subject=data.get("subject"),
-                district=data.get("district"),
-                control=data.get("control"),
-                action_value=data.get("action_value"),
-                status=data.get("status"),
-                source=data.get("source"),
-                distributed_at=data.get("distributed_at"),
-                raw=data.get("raw"),
+                **{k: data.get(k) for k in SCALAR_FIELDS},
+                movements=[
+                    Movement(**m) for m in data.get("movements", [])
+                ],
+                subjects=[
+                    Subject(**s) for s in data.get("subjects", [])
+                ],
+                participants=[
+                    Participant(**p) for p in data.get("participants", [])
+                ],
+                petitions=[
+                    Petition(**pet) for pet in data.get("petitions", [])
+                ],
+                hearings=[
+                    Hearing(**h) for h in data.get("hearings", [])
+                ],
+                incidents=[
+                    Incident(**i) for i in data.get("incidents", [])
+                ]
             )
             self.session.add(lawsuit)
             await self.session.commit()
             await self.session.refresh(lawsuit)
-            return lawsuit
+            return await self.get_by_cnj(cnj)
         else:
-            for field, value in data.items():
-                if value is not None:
-                    setattr(existing, field, value)
+            for field in SCALAR_FIELDS:
+              value = data.get(field)
+              if value is not None:
+                setattr(existing, field, value)
             await self.session.commit()
             return existing
