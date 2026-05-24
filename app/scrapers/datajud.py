@@ -1,7 +1,7 @@
 from app.scrapers.base import BaseScraper
 import httpx
 from app.core.config import settings
-from app.normalizers.datajud import parse_date, parse_datajud_date
+from app.normalizers.utils import parse_date, parse_datajud_date
 
 
 class DatajudScraper(BaseScraper):
