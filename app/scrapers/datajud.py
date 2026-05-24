@@ -2,6 +2,7 @@ from app.scrapers.base import BaseScraper
 import httpx
 from app.core.config import settings
 from app.normalizers.utils import parse_date, parse_datajud_date
+from app.models.models import SourceType
 
 
 class DatajudScraper(BaseScraper):
@@ -22,30 +23,30 @@ class DatajudScraper(BaseScraper):
 
     def scraper_normalize(self, raw: dict) -> dict:
         return {
-            "class_":         raw.get("classe", {}).get("nome"),
-            "grade":          raw.get("grau"),
+            "class_":         raw.get("classe", {}).get("nome") or None,
+            "grade":          raw.get("grau") or None,
             "subject":        raw.get("assuntos", [{}])[0].get("nome") if raw.get("assuntos") else None,
             "area":           None,
-            "court":          raw.get("orgaoJulgador", {}).get("nome"),
+            "court":          raw.get("orgaoJulgador", {}).get("nome") or None,
             "district":       None,
-            "control":        None,
+            "control":        raw.get('numeroProcesso') or None,
             "action_value":   None,
             "status":         None,
-            "source":         "datajud",
-            "distributed_at": parse_datajud_date(raw.get("dataAjuizamento")),
+            "source":         SourceType.datajud,
+            "distributed_at": parse_datajud_date(raw.get("dataAjuizamento")) or None,
             "movements": [
                 {
-                    "code":        m.get("codigo"),
-                    "description": m.get("nome"),
-                    "occurred_at": parse_date(m.get("dataHora")),
+                    "code":        int(m.get("codMovCnj")) if m.get("codMovCnj") else None,
+                    "description": m.get("nome") or None,
+                    "occurred_at": parse_date(m.get("dataHora")) or None,
                 }
                 for m in raw.get("movimentos", [])
             ],
             "participants": [],
             "subjects": [
                 {
-                    "code": s.get("codigo"),
-                    "name": s.get("nome")
+                    "code": int(s.get("codMovCnj")) if s.get("codMovCnj") else None,
+                    "name": s.get("nome") or None
                 }
                 for s in raw.get("assuntos", [])
             ],

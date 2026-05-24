@@ -1,10 +1,17 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.models import Lawsuit, Movement, Hearing, Incident, Participant, Petition, Subject
+from app.models.models import (
+    Lawsuit,
+    Movement,
+    Hearing,
+    Incident,
+    Participant,
+    Petition,
+    Subject,
+)
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.schemas.responses import PaginatedLawsuitsResponse, LawsuitResponse
 from sqlalchemy import func
-from app.scrapers.datajud import DatajudScraper
 
 
 class SqlAlchemyLawsuitRepository:
@@ -50,14 +57,26 @@ class SqlAlchemyLawsuitRepository:
         total = await self.session.scalar(count_stmt) or 0
 
         return PaginatedLawsuitsResponse(
-            total=int(total), limit=limit, offset=offset, items=[LawsuitResponse.model_validate(i) for i in items],
+            total=int(total),
+            limit=limit,
+            offset=offset,
+            items=[LawsuitResponse.model_validate(i) for i in items],
         )
-    
+
     async def upsert(self, cnj: str, data: dict, tribunal_id: int) -> Lawsuit | None:
         SCALAR_FIELDS = {
-            "class_", "area", "court", "grade", "subject",
-            "district", "control", "action_value", "status",
-            "source", "distributed_at", "raw"
+            "class_",
+            "area",
+            "court",
+            "grade",
+            "subject",
+            "district",
+            "control",
+            "action_value",
+            "status",
+            "distributed_at",
+            "source",
+            "raw",
         }
 
         existing = await self.get_by_cnj(cnj)
@@ -67,33 +86,37 @@ class SqlAlchemyLawsuitRepository:
                 id=cnj,
                 tribunal_id=tribunal_id,
                 **{k: data.get(k) for k in SCALAR_FIELDS},
-                movements=[
-                    Movement(**m) for m in data.get("movements", [])
-                ],
-                subjects=[
-                    Subject(**s) for s in data.get("subjects", [])
-                ],
-                participants=[
-                    Participant(**p) for p in data.get("participants", [])
-                ],
-                petitions=[
-                    Petition(**pet) for pet in data.get("petitions", [])
-                ],
-                hearings=[
-                    Hearing(**h) for h in data.get("hearings", [])
-                ],
-                incidents=[
-                    Incident(**i) for i in data.get("incidents", [])
-                ]
+                movements=[Movement(**m) for m in data.get("movements", [])],
+                subjects=[Subject(**s) for s in data.get("subjects", [])],
+                participants=[Participant(**p) for p in data.get("participants", [])],
+                petitions=[Petition(**pet) for pet in data.get("petitions", [])],
+                hearings=[Hearing(**h) for h in data.get("hearings", [])],
+                incidents=[Incident(**i) for i in data.get("incidents", [])],
             )
             self.session.add(lawsuit)
             await self.session.commit()
+
             await self.session.refresh(lawsuit)
             return await self.get_by_cnj(cnj)
         else:
             for field in SCALAR_FIELDS:
-              value = data.get(field)
-              if value is not None:
-                setattr(existing, field, value)
+                value = data.get(field)
+                if value is not None:
+                    current = getattr(existing, field)
+                    if current is None:
+                        setattr(existing, field, value)
+
+            participants = data.get("participants", [])
+            if participants:
+                existing.participants = [Participant(**p) for p in participants]
+
+            movements = data.get("movements", [])
+            if movements:
+                existing.movements = [Movement(**m) for m in movements]
+
+            subjects = data.get("subjects", [])
+            if subjects:
+                existing.subjects = [Subject(**s) for s in subjects]
+
             await self.session.commit()
-            return existing
+            return await self.get_by_cnj(cnj)
