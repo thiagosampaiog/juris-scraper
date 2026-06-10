@@ -85,5 +85,5 @@ class ConsultaProcessuralScraper(BaseScraper):
             "incidents": [],
             "hearings": [],
             "petitions": [],
-            "raw": None,
+            "raw": raw,
         }

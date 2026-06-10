@@ -53,5 +53,5 @@ class DatajudScraper(BaseScraper):
             "incidents": [],
             "hearings": [],
             "petitions": [],
-            "raw":   None,
+            "raw":   raw,
         }
